@@ -1,4 +1,30 @@
 import re
+import sqlite3
+
+# Funções para interagir com o banco de dados
+def inicializar_banco():
+    conn = sqlite3.connect('pizzaria.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pedidos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pizza TEXT,
+            endereco TEXT,
+            pagamento TEXT,
+            detalhes_pagamento TEXT,
+            refrigerante TEXT
+        )
+    ''')
+    conn.commit()
+    return conn
+
+def salvar_informacoes(conn, pizza, endereco, pagamento, detalhes_pagamento, refrigerante):
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO pedidos (pizza, endereco, pagamento, detalhes_pagamento, refrigerante)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (pizza, endereco, pagamento, detalhes_pagamento, refrigerante))
+    conn.commit()
 
 def mostrar_menu():
     print("Bem-vindo à Pizzaria!")
@@ -14,6 +40,14 @@ def opcoes_pizza():
     print("3. Quatro Queijos")
     print("4. Portuguesa")
     print("0. Voltar ao Menu Principal")
+
+def opcoes_refrigerante():
+    print("Opções de Refrigerante:")
+    print("1. Coca-Cola")
+    print("2. Fanta")
+    print("3. Sprite")
+    print("4. Água")
+    print("0. Nenhum")
 
 def colocar_endereco():
     while True:
@@ -39,34 +73,26 @@ def pagamento_finalizacao():
         print("1. Débito")
         print("2. Crédito")
         escolha_cartao = input("Escolha uma opção de cartão: ")
+        numero_cartao = input("Insira o número do cartão: ")
         if escolha_cartao == "1":
-            numero_cartao = input("Insira o número do cartão de débito: ")
             print(f"Pagamento com cartão de débito {numero_cartao} realizado com sucesso!")
-            print("A pizza está a caminho!")
-            return "Débito", numero_cartao
         elif escolha_cartao == "2":
-            numero_cartao = input("Insira o número do cartão de crédito: ")
             print(f"Pagamento com cartão de crédito {numero_cartao} realizado com sucesso!")
-            print("A pizza está a caminho!")
-            return "Crédito", numero_cartao
+        print("A pizza está a caminho!")
+        return "Cartão", numero_cartao
     else:
         print("Opção de pagamento inválida.")
         return None, None
 
-def salvar_informacoes(pizza, endereco, pagamento, detalhes_pagamento):
-    with open("info.py", "w") as file:
-        file.write(f"pizza = '{pizza}'\n")
-        file.write(f"endereco = '{endereco}'\n")
-        file.write(f"pagamento = '{pagamento}'\n")
-        file.write(f"detalhes_pagamento = '{detalhes_pagamento}'\n")
-
 def main():
+    conn = inicializar_banco()
     pizza_escolhida = False
     endereco_inserido = False
     pizza = ""
     endereco = ""
     pagamento = ""
     detalhes_pagamento = ""
+    refrigerante = ""
 
     while True:
         mostrar_menu()
@@ -81,8 +107,9 @@ def main():
                 pizza = escolha_pizza
                 endereco = colocar_endereco()
                 endereco_inserido = True
+                refrigerante_opcao = opcoes_refrigerante()
                 pagamento, detalhes_pagamento = pagamento_finalizacao()
-                salvar_informacoes(pizza, endereco, pagamento, detalhes_pagamento)
+                salvar_informacoes(conn, pizza, endereco, pagamento, detalhes_pagamento, refrigerante)
                 break
             elif escolha_pizza == "0":
                 continue
@@ -96,8 +123,9 @@ def main():
                 print("Por favor, escolha uma pizza primeiro.")
         elif escolha == "3":
             if pizza_escolhida and endereco_inserido:
+                refrigerante = input("Escolha um refrigerante: ")
                 pagamento, detalhes_pagamento = pagamento_finalizacao()
-                salvar_informacoes(pizza, endereco, pagamento, detalhes_pagamento)
+                salvar_informacoes(conn, pizza, endereco, pagamento, detalhes_pagamento, refrigerante)
                 break
             else:
                 print("Por favor, escolha uma pizza e insira o endereço primeiro.")
@@ -106,6 +134,8 @@ def main():
             break
         else:
             print("Opção inválida. Por favor, tente novamente.")
+
+    conn.close()
 
 if __name__ == "__main__":
     main()
